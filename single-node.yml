@@ -1,0 +1,49 @@
+version: "3.3"
+
+services:
+
+  traefik:
+    image: "traefik:v2.4"
+    deploy:
+      placement:
+        constraints:
+          - node.labels.common == 1
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=traefik_net"
+      #- '--providers.docker.defaultRule=Host(`{{ index .Labels "com.docker.stack.service.name" }}.{{ index .Labels "com.docker.stack.namespace" }}.${URL-mitrol.net}`)'
+      - '--providers.docker.defaultRule=PathPrefix(`/{{ index .Labels "com.docker.stack.namespace" }}{{ index .Labels "com.docker.stack.service.path" }}`)'
+
+      - "--entrypoints.web.address=:80"
+      #- "--providers.docker.useBindPortIP=true"
+      #- "--traefik.http.middlewares.my-header.headers.customresponseheaders.X-Custom-Response-Header=cinema"
+      #- "--providers.docker.swarmMode=true"
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 8080
+        published: 38080
+        protocol: tcp
+        mode: host
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - net
+
+
+  whoami:
+    image: "traefik/whoami"
+    labels:
+        - "com.docker.stack.service.path=/whoami"
+        - "traefik.enable=true"
+    networks:
+      - net
+
+
+networks:
+  net:
